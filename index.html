@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Wallet</title>
+</head>
+<body>
+<table>
+    <thead><th>Id</th><th>ADRESS</th><th>MONEY</th></thead>
+    {{range . }}
+    <tr>
+        <td>{{.ID}}</td>
+        <td>{{.ADRESS}}</td>
+        <td>{{.MONEY}}</td>
+    </tr>
+    {{end}}
+</table>
+</body>
+</html>
