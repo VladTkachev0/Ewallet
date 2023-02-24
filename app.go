@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
-	"math/rand"
 	"net/http"
 
 	"strconv"
@@ -52,59 +50,6 @@ func main() {
 	r.HandleFunc("/api/transactions", getLast).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8888", r))
-
-}
-
-func randAdress() string {
-	b := make([]byte, 8)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	n := new(big.Int)
-	n.SetBytes(b)
-	return n.Text(62)[:10]
-}
-
-func createTableWallet(db *sql.DB) {
-	wallet_table := `CREATE TABLE IF NOT EXISTS wallet (
-        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "adress" TEXT,
-        "money" FLOAT
-        );`
-	query, err := db.Prepare(wallet_table)
-	if err != nil {
-		log.Fatal(err)
-	}
-	query.Exec()
-	fmt.Println("Table wallet successfully!")
-
-}
-
-func createTableTransfer(db *sql.DB) {
-	transfer_table := `CREATE TABLE IF NOT EXISTS transfer (
-        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "adress_one" TEXT REFERENCES wallet (wallet_adress),
-        "adress_two" TEXT REFERENCES wallet (wallet_adress),
-        "sum" FLOAT
-        );`
-	query1, err1 := db.Prepare(transfer_table)
-	if err1 != nil {
-		log.Fatal(err1)
-	}
-	query1.Exec()
-	fmt.Println("Table transfer successfully!")
-
-}
-
-func insertWallet(db *sql.DB) {
-	statement, err := db.Prepare("INSERT INTO wallet(adress,  money) VALUES (?, ?)")
-	checkErr(err)
-	for i := 0; i < 10; i++ {
-		_, err = statement.Exec(randAdress(), 100.00)
-		checkErr(err)
-	}
 
 }
 
@@ -155,6 +100,11 @@ func send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if transfer.ADRESS_ONE == transfer.ADRESS_TWO {
+		json.NewEncoder(w).Encode("The same wallets")
+		return
+	}
+
 	fmt.Println("Insert and Update database")
 
 	statement1, err1 := database.Prepare("INSERT INTO transfer (adress_one, adress_two, sum) values (?,?,?)")
@@ -169,17 +119,14 @@ func send(w http.ResponseWriter, r *http.Request) {
 	_, err2 = statement2.Exec(transfer.SUM, transfer.ADRESS_ONE)
 	//checkErr(err2)
 	if err2 != nil {
-		json.NewEncoder(w).Encode("На кошельке недостаточно средств")
+		json.NewEncoder(w).Encode("There are not enough funds in the wallet")
 		return
 	}
 	_, err3 = statement3.Exec(transfer.SUM, transfer.ADRESS_TWO)
 	checkErr(err3)
-}
 
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
+	json.NewEncoder(w).Encode("Translation done")
+
 }
 
 func getLast(w http.ResponseWriter, r *http.Request) {
@@ -215,15 +162,4 @@ func getLast(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode("Such a number of transfers have not yet been made")
 		return
 	}
-}
-
-func firstCreate() bool {
-	row, err := database.Query("SELECT * FROM wallet")
-	checkErr(err)
-	defer row.Close()
-
-	if !row.Next() {
-		return true
-	}
-	return false
 }
