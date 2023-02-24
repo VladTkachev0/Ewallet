@@ -71,8 +71,5 @@ func firstCreate() bool {
 	checkErr(err)
 	defer row.Close()
 
-	if !row.Next() {
-		return true
-	}
-	return false
+	return !row.Next()
 }
